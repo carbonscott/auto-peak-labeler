@@ -75,7 +75,7 @@ class MPIPseudoVoigt2DLabeler:
     Attributes:
 
     """
-    def __init__(self, data_source, mpi_batch_size):
+    def __init__(self, mpi_batch_size, finalizes_MPI = True):
         self.mpi_comm = MPI.COMM_WORLD
         self.mpi_rank = self.mpi_comm.Get_rank()
         self.mpi_size = self.mpi_comm.Get_size()
@@ -87,32 +87,62 @@ class MPIPseudoVoigt2DLabeler:
 
         self.labeler = PseudoVoigt2DLabeler()
 
-        self.data_source    = data_source
         self.mpi_batch_size = mpi_batch_size
+        self.finalizes_MPI  = finalizes_MPI
+
+        self.is_finalized = False
+
+
+    def is_main_rank(self):
+        return self.mpi_rank == 0
+
+
+    def finalize(self):
+        self.mpi_comm.Barrier()
+        if self.finalizes_MPI:
+            if not self.is_finalized:
+                MPI.Finalize()
+                self.is_finalized = True
+
+                if self.mpi_rank != 0: sys.exit(0)
 
 
     def __enter__(self):
         return self
 
 
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        The context manager achieves two things while exiting
+        - Call MPI.Finalize() so users don't need to handle it.
+        - Stop executing any following Python codes if it's not the main rank.
+
+        Worker nodes will not continue with any other non-MPI Python codes.
+        """
+        self.finalize()
+
+
     def __call__(self):
         return self.fit()
 
 
-    def fit(self):
+    def fit(self, patch_list):
+        """
+        patch_list is List for the manager node.
+        patch_list is None for workers.
+        """
         mpi_comm       = self.mpi_comm
         mpi_rank       = self.mpi_rank
         mpi_size       = self.mpi_size
         mpi_data_tag   = self.mpi_data_tag
         mpi_batch_size = self.mpi_batch_size
         labeler        = self.labeler
-        data_source    = self.data_source
 
         # ___/ MAIN \___
         mpi_comm.Barrier()
         if mpi_rank == 0:
-            # Data source handles data accessing...
-            patch_list = data_source.load_patch_list()
+            # If patch_list is None by accident??? Treat it as an empty List
+            if patch_list is None: patch_list = []
 
             # Inform all workers the number of batches to work on...
             batch_patch_list = np.array_split(patch_list, mpi_batch_size)
@@ -152,17 +182,3 @@ class MPIPseudoVoigt2DLabeler:
         mpi_comm.Barrier()
 
         return res_list if mpi_rank == 0 else None   # !!! Only worker returns None
-
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """
-        The context manager achieves two things while exiting
-        - Call MPI.Finalize() so users don't need to handle it.
-        - Stop executing any following Python codes if it's not the main rank.
-
-        Worker nodes will not continue with any other non-MPI Python codes.
-        """
-        # Considering writing saving codes here
-        MPI.Finalize()
-
-        if self.mpi_rank != 0: sys.exit(0)
