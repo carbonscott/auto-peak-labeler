@@ -112,7 +112,7 @@ class MPICxiDataSource:
 
     def __enter__(self):
         if self.mpi_rank == 0:
-            self.cxi_handle = h5py.File(self.path_cxi, "r")
+            self.cxi_handle = h5py.File(self.path_cxi, "a")
 
         return self
 
@@ -122,21 +122,25 @@ class MPICxiDataSource:
         self.finalize()
 
 
-    def get_dataset(self, key):
-        dataset = None
+    def add_key(self, key = 'segmask'):
         if self.mpi_rank == 0:
-            dataset = self.cxi_handle.get(key)[()]    # !!!Watch out: it will return data not just the iterator.
+            cxi_key = self.cxi_key["num_peaks"]
+            num_events = len(self.cxi_handle.get(cxi_key))
 
-            for mpi_idx in range(1, self.mpi_size, 1):
-                data_to_send = dataset
-                self.mpi_comm.send(data_to_send, dest = mpi_idx, tag = self.mpi_data_tag)
-        else:
-            dataset = self.mpi_comm.recv(source = 0, tag = self.mpi_data_tag)
+            cxi_key_data = self.cxi_key["data"]
+            data = self.cxi_handle.get(cxi_key_data)[idx]
+            size_y, size_x = data.shape[-2:]
 
-        self.mpi_comm.Barrier()
+            cxi_key = '/entry_1/data_1/' + key
+            if cxi_key in self.cxi_handle: 
+                del self.cxi_handle[cxi_key]
+            self.cxi_handle.create_dataset(cxi_key, (num_events, size_y, size_x))
 
-        return dataset
 
+    def save_value(self, key = 'segmask', idx = 0, value = None):
+        if self.mpi_rank == 0:
+            cxi_key = '/entry_1/data_1/' + key
+            self.cxi_handle[cxi_key][idx] = value
 
 
     def __len__(self):
