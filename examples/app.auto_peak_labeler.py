@@ -150,7 +150,4 @@ else:
 
         mpi_comm.send(res_list_current_rank, dest = 0, tag = mpi_data_tag["output"])
 
-
-mpi_comm.Barrier()
-
 MPI.Finalize()
