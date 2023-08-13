@@ -1,0 +1,9 @@
+# ___/ Input \___
+mpi_batch_size : 1
+win_size       : 10
+cxi:
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_1_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_2_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_3_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_4_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_5_autolabel.cxi
