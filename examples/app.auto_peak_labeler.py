@@ -20,6 +20,8 @@ import argparse
 from auto_peak_labeler.app   import PseudoVoigt2DLabeler
 from auto_peak_labeler.utils import apply_mask, get_patch_list
 
+from auto_peak_labeler.modeling.pseudo_voigt2d import PseudoVoigt2D
+
 
 # Set up MPI
 from mpi4py import MPI
@@ -58,7 +60,6 @@ if mpi_rank == 0:
     win_size       = config['win_size']
     mpi_batch_size = config['mpi_batch_size']
 
-    # ___/ CXI \___
     # Define the keys used below...
     CXI_KEY = { 
         "num_peaks"  : "/entry_1/result_1/nPeaks",
@@ -69,12 +70,21 @@ if mpi_rank == 0:
         "segmask"    : "/entry_1/data_1/segmask",
     }
 
+    # Set up the threshold for peak labeling...
+    sigma_level        = 2
+    frac_redchi        = 0.5
+    max_goodness_score = 0.5
+
     # Go through each cxi...
     for path_cxi in path_cxi_list:
-        with h5py.File(path_cxi, 'r') as fh:
+        if not os.path.exists(path_cxi): continue
+        with h5py.File(path_cxi, 'a') as fh:
             # Obtain the number of peaks per event...
             k = CXI_KEY['num_peaks']
             num_peaks_by_event = fh.get(k)
+
+            # Allow to create a segmask dataset for each cxi file...
+            creates_segmask_dataset = True
 
             # Go through all hit events...
             for enum_event_idx, num_peaks in enumerate(num_peaks_by_event):
@@ -130,6 +140,59 @@ if mpi_rank == 0:
                     for i in range(1, mpi_size, 1):
                         res_list_current_rank = mpi_comm.recv(source = i, tag = mpi_data_tag["output"])
                         res_list.extend(res_list_current_rank)
+
+                # Manager works on "model, threshold and update"...
+                # ...model
+                H, W    = img.shape[-2:]
+                segmask = np.zeros((H, W), dtype = int)
+                ## segmask[250:250+100, 250:250+100] = 1
+                for y, x, res in zip(peaks_y, peaks_x, res_list):
+                    # Is it a good fit???
+                    rmsd = np.sqrt((res.residual**2).mean())
+                    redchi = res.redchi
+                    goodness_score = (1 - frac_redchi) * rmsd + frac_redchi * redchi
+                    if goodness_score > max_goodness_score: continue
+
+                    # Find the patch to label...
+                    y             = round(y)
+                    x             = round(x)
+                    x_min         = max(x - win_size, 0)
+                    x_max         = min(x + win_size + 1, H)
+                    y_min         = max(y - win_size, 0)
+                    y_max         = min(y + win_size + 1, W)
+                    segmask_patch = segmask[y_min:y_max, x_min:x_max]
+
+                    # Generate a model without background...
+                    pseudo_voigt2d = PseudoVoigt2D(res.params, includes_bg = False)
+                    H_peak, W_peak = segmask_patch.shape[-2:]
+                    Y_peak         = np.arange(0, H_peak)
+                    X_peak         = np.arange(0, W_peak)
+                    Y, X           = np.meshgrid(Y_peak, X_peak, indexing = 'ij')
+                    model_patch    = pseudo_voigt2d(Y, X)
+
+                    filter_rule = model_patch > (model_patch.mean() + sigma_level * model_patch.std())
+                    segmask_patch[filter_rule] = 1
+
+                # Create segmask dataset if necessary...
+                k = CXI_KEY['segmask']
+                if creates_segmask_dataset:
+                    # Create a placeholder for saving segmask...
+                    if k in fh: 
+                        print(f"Deleting existing {k}")
+                        del fh[k]
+
+                    num_event = len(num_peaks_by_event)
+                    fh.create_dataset(k,
+                                      (num_event, H, W),
+                                      chunks           = (1, H, W),
+                                      dtype            = 'int',
+                                      compression_opts = 6,
+                                      compression      = 'gzip',)
+
+                    creates_segmask_dataset = False
+
+                # Save the segmask for this event...
+                fh[k][enum_event_idx] = segmask
 
     # Send termination signal...
     for i in range(1, mpi_size, 1):

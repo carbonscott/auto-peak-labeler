@@ -1,5 +1,5 @@
 # ___/ Input \___
-mpi_batch_size : 1
+mpi_batch_size : 2
 win_size       : 10
 cxi:
 - mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_1_autolabel.cxi
@@ -7,3 +7,69 @@ cxi:
 - mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_3_autolabel.cxi
 - mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_4_autolabel.cxi
 - mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_5_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_6_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_7_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_8_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_9_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_10_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_11_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_12_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_13_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_14_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_15_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_16_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_17_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_18_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_19_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_20_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_21_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_22_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_23_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_24_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_25_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_26_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_27_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_28_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_29_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_30_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_31_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_32_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_33_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_34_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_35_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_36_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_37_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_38_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_39_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_40_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_41_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_42_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_43_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_44_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_45_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_46_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_47_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_48_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_49_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_50_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_51_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_52_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_53_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_54_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_55_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_56_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_57_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_58_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_59_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_60_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_61_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_62_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_63_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_64_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_65_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_66_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_67_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_68_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_69_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_70_autolabel.cxi
+- mfxp22820/cwang31/psocake/r0028/mfxp22820_0028_71_autolabel.cxi
