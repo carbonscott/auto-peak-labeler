@@ -56,22 +56,22 @@ if mpi_rank == 0:
     # Load the YAML file
     with open(fl_yaml, 'r') as fh:
         config = yaml.safe_load(fh)
-    path_cxi_list  = config['cxi']
-    win_size       = config['win_size']
-    mpi_batch_size = config['mpi_batch_size']
+    path_cxi_list     = config['cxi']
+    win_size          = config['win_size']
+    mpi_batch_size    = config['mpi_batch_size']
+    sigma_level       = config['sigma_level']
 
     # Define the keys used below...
     CXI_KEY = { 
-        "num_peaks"  : "/entry_1/result_1/nPeaks",
-        "data"       : "/entry_1/data_1/data",
-        "mask"       : "/entry_1/data_1/mask",
-        "peak_y"     : "/entry_1/result_1/peakYPosRaw",
-        "peak_x"     : "/entry_1/result_1/peakXPosRaw",
-        "segmask"    : "/entry_1/data_1/segmask",
+        "num_peaks" : "/entry_1/result_1/nPeaks",
+        "data"      : "/entry_1/data_1/data",
+        "mask"      : "/entry_1/data_1/mask",
+        "peak_y"    : "/entry_1/result_1/peakYPosRaw",
+        "peak_x"    : "/entry_1/result_1/peakXPosRaw",
+        "segmask"   : "/entry_1/data_1/segmask",
     }
 
     # Set up the threshold for peak labeling...
-    sigma_level        = 2
     frac_redchi        = 0.5
     max_goodness_score = 0.5
 
@@ -94,7 +94,8 @@ if mpi_rank == 0:
 
                 # Obtain the bad pixel mask...
                 k = CXI_KEY['mask']
-                mask = fh.get(k)[enum_event_idx]
+                mask = fh.get(k)
+                mask = mask[enum_event_idx] if mask.ndim == 3 else mask[()]
 
                 # Obtain the Bragg peak positions in this event...
                 k = CXI_KEY['peak_y']
@@ -119,6 +120,9 @@ if mpi_rank == 0:
                     # Split the workfload...
                     patch_list_per_batch_per_chunk = np.array_split(patch_list_per_batch, mpi_size)
 
+                    # Get batch size...
+                    batch_size = len(patch_list_per_batch)
+
                     for i in range(1, mpi_size, 1):
                         # Ask workers to start data process...
                         mpi_comm.send(START_SIGNAL, dest = i, tag = mpi_data_tag["signal"])
@@ -128,7 +132,6 @@ if mpi_rank == 0:
                         mpi_comm.send(data_to_send, dest = i, tag = mpi_data_tag["input"])
 
                         # Send debug info to workers...
-                        batch_size = len(patch_list_per_batch)
                         data_to_send = (enum_event_idx, batch_idx, batch_size)
                         mpi_comm.send(data_to_send, dest = i, tag = mpi_data_tag["debug"])
 
@@ -157,12 +160,13 @@ if mpi_rank == 0:
                     y             = round(y)
                     x             = round(x)
                     x_min         = max(x - win_size, 0)
-                    x_max         = min(x + win_size + 1, H)
+                    x_max         = min(x + win_size + 1, W)
                     y_min         = max(y - win_size, 0)
-                    y_max         = min(y + win_size + 1, W)
+                    y_max         = min(y + win_size + 1, H)
                     segmask_patch = segmask[y_min:y_max, x_min:x_max]
 
                     # Generate a model without background...
+                    # !!!Notice that we rely on fitting to handle patches that would have needed padding
                     pseudo_voigt2d = PseudoVoigt2D(res.params, includes_bg = False)
                     H_peak, W_peak = segmask_patch.shape[-2:]
                     Y_peak         = np.arange(0, H_peak)
@@ -170,7 +174,7 @@ if mpi_rank == 0:
                     Y, X           = np.meshgrid(Y_peak, X_peak, indexing = 'ij')
                     model_patch    = pseudo_voigt2d(Y, X)
 
-                    filter_rule = model_patch > (model_patch.mean() + sigma_level * model_patch.std())
+                    filter_rule = model_patch > (np.nanmean(model_patch) + sigma_level * np.nanstd(model_patch))
                     segmask_patch[filter_rule] = 1
 
                 # Create segmask dataset if necessary...
