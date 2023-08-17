@@ -18,7 +18,7 @@ import yaml
 import argparse
 
 from auto_peak_labeler.app   import PseudoVoigt2DLabeler
-from auto_peak_labeler.utils import apply_mask, get_patch_list
+from auto_peak_labeler.utils import apply_mask, get_patch_list, split_list_into_chunk
 
 from auto_peak_labeler.modeling.pseudo_voigt2d import PseudoVoigt2D
 
@@ -56,10 +56,13 @@ if mpi_rank == 0:
     # Load the YAML file
     with open(fl_yaml, 'r') as fh:
         config = yaml.safe_load(fh)
-    path_cxi_list     = config['cxi']
-    win_size          = config['win_size']
-    mpi_batch_size    = config['mpi_batch_size']
-    sigma_level       = config['sigma_level']
+    path_cxi_list           = config['cxi']
+    win_size                = config['win_size']
+    mpi_batch_size          = config['mpi_batch_size']
+    sigma_level             = config['sigma_level']
+    frac_redchi             = config['frac_redchi']
+    max_goodness_score      = config['max_goodness_score']
+    creates_segmask_dataset = config['creates_segmask_dataset']
 
     # Define the keys used below...
     CXI_KEY = { 
@@ -71,20 +74,13 @@ if mpi_rank == 0:
         "segmask"   : "/entry_1/data_1/segmask",
     }
 
-    # Set up the threshold for peak labeling...
-    frac_redchi        = 0.5
-    max_goodness_score = 0.5
-
     # Go through each cxi...
     for path_cxi in path_cxi_list:
         if not os.path.exists(path_cxi): continue
-        with h5py.File(path_cxi, 'a') as fh:
+        with h5py.File(path_cxi, 'r+') as fh:
             # Obtain the number of peaks per event...
             k = CXI_KEY['num_peaks']
             num_peaks_by_event = fh.get(k)
-
-            # Allow to create a segmask dataset for each cxi file...
-            creates_segmask_dataset = True
 
             # Go through all hit events...
             for enum_event_idx, num_peaks in enumerate(num_peaks_by_event):
@@ -112,43 +108,53 @@ if mpi_rank == 0:
 
                 # ___/ MPI: MANAGER BROADCAST DATA \___
                 # Inform all workers the number of batches to work on...
-                batch_patch_list = np.array_split(patch_list, mpi_batch_size)
+                batch_idx_list = split_list_into_chunk(list(range(len(patch_list))), max_num_chunk = mpi_batch_size, begins_with_shorter_chunk = True)
 
                 # Perform model fitting for each batch...
                 res_list = []
-                for batch_idx, patch_list_per_batch in enumerate(batch_patch_list):
-                    # Split the workfload...
-                    patch_list_per_batch_per_chunk = np.array_split(patch_list_per_batch, mpi_size)
+                for batch_idx, chunk_idx_list in enumerate(batch_idx_list):
+                    # Split the workload...
+                    ## patch_list_per_batch_per_chunk = np.array_split(patch_list_per_batch, mpi_size)
+                    idx_list = split_list_into_chunk(list(range(len(chunk_idx_list))),
+                                                     max_num_chunk = mpi_size,
+                                                     begins_with_shorter_chunk = True)
 
                     # Get batch size...
-                    batch_size = len(patch_list_per_batch)
+                    batch_size = len(chunk_idx_list)    # ...number of chunks in a batch
 
+                    # Broadcast the work order and data to work on to all workers...
                     for i in range(1, mpi_size, 1):
+                        # When there're more mpi_ranks than chunks to process???
+                        if not i < len(idx_list): continue
+
                         # Ask workers to start data process...
                         mpi_comm.send(START_SIGNAL, dest = i, tag = mpi_data_tag["signal"])
 
                         # Send workers data for processing...
-                        data_to_send = patch_list_per_batch_per_chunk[i]
+                        patch_list_current_rank = [ patch_list[patch_idx] for patch_idx in idx_list[i] ]
+                        data_to_send = patch_list_current_rank
                         mpi_comm.send(data_to_send, dest = i, tag = mpi_data_tag["input"])
 
                         # Send debug info to workers...
                         data_to_send = (enum_event_idx, batch_idx, batch_size)
                         mpi_comm.send(data_to_send, dest = i, tag = mpi_data_tag["debug"])
 
-                    patch_list_current_rank = patch_list_per_batch_per_chunk[0]
+                    # Manager works on chunk 0...
+                    patch_list_current_rank = [ patch_list[patch_idx] for patch_idx in idx_list[0] ]
                     print(f"E {enum_event_idx:06d}, B {batch_idx:02d}, |C| {len(patch_list_current_rank):04d}({batch_size:04d}), R {mpi_rank:03d}.", flush = True)
                     res_list_current_rank = labeler.fit_all(patch_list_current_rank) 
                     res_list.extend(res_list_current_rank)
 
                     for i in range(1, mpi_size, 1):
+                        # When there're more mpi_ranks than chunks to process???
+                        if not i < len(idx_list): continue
+
                         res_list_current_rank = mpi_comm.recv(source = i, tag = mpi_data_tag["output"])
                         res_list.extend(res_list_current_rank)
 
                 # Manager works on "model, threshold and update"...
-                # ...model
                 H, W    = img.shape[-2:]
                 segmask = np.zeros((H, W), dtype = int)
-                ## segmask[250:250+100, 250:250+100] = 1
                 for y, x, res in zip(peaks_y, peaks_x, res_list):
                     # Is it a good fit???
                     rmsd = np.sqrt((res.residual**2).mean())
@@ -165,6 +171,7 @@ if mpi_rank == 0:
                     y_max         = min(y + win_size + 1, H)
                     segmask_patch = segmask[y_min:y_max, x_min:x_max]
 
+                    # [[[ Model ]]]
                     # Generate a model without background...
                     # !!!Notice that we rely on fitting to handle patches that would have needed padding
                     pseudo_voigt2d = PseudoVoigt2D(res.params, includes_bg = False)
@@ -174,14 +181,15 @@ if mpi_rank == 0:
                     Y, X           = np.meshgrid(Y_peak, X_peak, indexing = 'ij')
                     model_patch    = pseudo_voigt2d(Y, X)
 
+                    # [[[ Threshold and Update ]]]
                     filter_rule = model_patch > (np.nanmean(model_patch) + sigma_level * np.nanstd(model_patch))
                     segmask_patch[filter_rule] = 1
 
                 # Create segmask dataset if necessary...
                 k = CXI_KEY['segmask']
                 if creates_segmask_dataset:
-                    # Create a placeholder for saving segmask...
-                    if k in fh: 
+                    # Create a placeholder for saving segmasks...
+                    if k in fh:
                         print(f"Deleting existing {k}")
                         del fh[k]
 
@@ -196,7 +204,7 @@ if mpi_rank == 0:
                     creates_segmask_dataset = False
 
                 # Save the segmask for this event...
-                fh[k][enum_event_idx] = segmask
+                fh[k][enum_event_idx] = segmask[:]    # !!![:] is important that enforces copy
 
     # Send termination signal...
     for i in range(1, mpi_size, 1):
