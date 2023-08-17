@@ -55,3 +55,40 @@ def apply_mask(data, mask, mask_value = np.nan):
     data_masked = np.where(mask, data, mask_value)
 
     return data_masked
+
+
+
+
+def split_list_into_chunk(input_list, max_num_chunk = 2, begins_with_shorter_chunk = True):
+    """
+    `begins_with_shorter_chunk = True` means 
+    [[0],
+     [1, 2, 3, 4],
+     [5, 6, 7, 8],
+     [9, 10, 11, 12],
+     [13, 14, 15, 16],
+     [17, 18, 19, 20],
+     [21, 22, 23, 24]]
+    """
+    if begins_with_shorter_chunk:
+        input_list = input_list[::-1]
+
+    chunk_size = len(input_list) // max_num_chunk + 1
+
+    size_list = len(input_list)
+
+    chunked_list = []
+    for idx_chunk in range(max_num_chunk):
+        idx_b = idx_chunk * chunk_size
+        idx_e = idx_b + chunk_size
+        if idx_e >= size_list: idx_e = size_list
+
+        seg = input_list[idx_b : idx_e]
+        chunked_list.append(seg)
+
+        if idx_e == size_list: break
+
+    if begins_with_shorter_chunk:
+        chunked_list = [ chunk[::-1] for chunk in chunked_list[::-1] ]
+
+    return chunked_list
