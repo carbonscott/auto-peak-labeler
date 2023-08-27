@@ -62,7 +62,6 @@ if mpi_rank == 0:
     sigma_level             = config['sigma_level']
     frac_redchi             = config['frac_redchi']
     max_goodness_score      = config['max_goodness_score']
-    creates_segmask_dataset = config['creates_segmask_dataset']
 
     # Define the keys used below...
     CXI_KEY = { 
@@ -76,8 +75,13 @@ if mpi_rank == 0:
 
     # Go through each cxi...
     for path_cxi in path_cxi_list:
+        # !!!This should be applied for every file.
+        creates_segmask_dataset = config['creates_segmask_dataset']
+
         if not os.path.exists(path_cxi): continue
         with h5py.File(path_cxi, 'r+') as fh:
+            print(f"Working on {path_cxi}...")
+
             # Obtain the number of peaks per event...
             k = CXI_KEY['num_peaks']
             num_peaks_by_event = fh.get(k)
