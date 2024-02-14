@@ -98,17 +98,19 @@ class Residual:
     Residual calculates the residual values between model and data.
 
     Attributes:
-
         params : lmfit.Parameters
             Example: { "amp" : {"value" : 0, "min" : 0,} }
 
         fitting_method : 'leastsq' or 'least_squares'
             More info: https://lmfit.github.io/lmfit-py/fitting.html
-
     """
-    def __init__(self, params):
-        self.params         = params
-        self.model          = PseudoVoigt2D(params)
+    def __init__(self, param_dict):
+        # Populate params to lmfit.Parameters...
+        self.params = lmfit.Parameters()
+        for k, v in param_dict.items():
+            self.params.add(k, value = v)
+
+        self.model          = PseudoVoigt2D(self.params)
         self.fitting_method = 'leastsq'
 
         return None
