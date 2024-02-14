@@ -80,10 +80,9 @@ class PeakFitter:
             initial_params = initial_guess_for_peak(image)
             return perform_fitting(image, initial_params)
 
-
         futures = [fit_single_image.remote(image) for image in image_list]
         results = ray.get(futures)
-        return results
 
-    def shutdown(self):
         ray.shutdown()
+
+        return results
